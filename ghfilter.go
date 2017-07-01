@@ -7,21 +7,18 @@ import (
 )
 
 // Filter is a collection of conditions.
-// The zero value is useful? The default is to deny.
-// TODO do? or just have a type Conditions []Condition and have methods on that.
 type Filter struct {
 	Conditions []Condition
 }
 
-// Matches returns true if event matches at least one condition, else return false.
-// TODO do?
+// Matches returns true if event matches all conditions, else return false.
 func (f *Filter) Matches(event *github.Event) bool {
 	for _, condition := range f.Conditions {
-		if condition.Matches(event) {
-			return true
+		if !condition.Matches(event) {
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 // A Condition is a test which compares multiple fields with a GitHub event's.

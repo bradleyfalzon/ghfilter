@@ -8,6 +8,49 @@ import (
 	"github.com/google/go-github/github"
 )
 
+func TestFilter_matches(t *testing.T) {
+	filter := Filter{
+		Conditions: []Condition{
+			{ComparePublic: true, Public: false},
+			{Type: "IssuesEvent"},
+		},
+	}
+
+	tests := []struct {
+		event *github.Event
+		want  bool
+	}{
+		{
+			event: &github.Event{
+				Type:   github.String("IssuesEvent"),
+				Public: github.Bool(false),
+			},
+			want: true,
+		},
+		{
+			event: &github.Event{
+				Type:   github.String("IssuesEvent"),
+				Public: github.Bool(true), // we want false
+			},
+			want: false,
+		},
+		{
+			event: &github.Event{
+				Type:   github.String("PushEvent"), // We want IssuesEvent
+				Public: github.Bool(false),
+			},
+			want: false,
+		},
+	}
+
+	for _, test := range tests {
+		have := filter.Matches(test.event)
+		if have != test.want {
+			t.Errorf("have: %v, want %v", have, test.want)
+		}
+	}
+}
+
 func TestCondition_type(t *testing.T) {
 	events := []*github.Event{
 		{
