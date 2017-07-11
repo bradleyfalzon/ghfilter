@@ -2,6 +2,7 @@ package ghfilter
 
 import (
 	"encoding/json"
+	"regexp"
 	"strings"
 
 	"github.com/google/go-github/github"
@@ -36,9 +37,13 @@ type Condition struct {
 	// fields are not checked. Comparison is case insensitive.
 	PayloadIssueLabel string
 	// PayloadIssueMilestoneTitle compares the event's issue milestone's title. If not
-	// empty the payload must have a non-nik payload, issue and milestone field. If
+	// empty the payload must have a non-nil payload, issue and milestone field. If
 	// empty the fields are not checked. Comparison is case insensitive.
 	PayloadIssueMilestoneTitle string
+	// PayloadIssueTitleRegexp compares the event's issue title against regexp. If not
+	// empty the payload must have a non-nil payload, issue and title field. If
+	// empty the fields are not checked. See https://golang.org/pkg/regexp for syntax.
+	PayloadIssueTitleRegexp string
 	// ComparePublic enables comparing of the event's public field with the condition's
 	// Public value. Setting to false will skip checking the Public field.
 	ComparePublic bool
@@ -114,6 +119,27 @@ func (c *Condition) Matches(event *github.Event) bool {
 			return false
 		}
 		if strings.ToLower(payload.Issue.Milestone.Title) != strings.ToLower(c.PayloadIssueMilestoneTitle) {
+			return false
+		}
+	}
+	if c.PayloadIssueTitleRegexp != "" {
+		if event.RawPayload == nil {
+			return false
+		}
+		var payload struct {
+			Issue struct {
+				Title string `json:"title"`
+			} `json:"issue"`
+		}
+		if err := json.Unmarshal(*event.RawPayload, &payload); err != nil {
+			// May not have issue.title
+			return false
+		}
+		re, err := regexp.Compile(c.PayloadIssueTitleRegexp)
+		if err != nil {
+			return false
+		}
+		if !re.MatchString(payload.Issue.Title) {
 			return false
 		}
 	}
