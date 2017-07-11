@@ -2,6 +2,7 @@ package ghfilter
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/google/go-github/github"
 )
@@ -26,11 +27,15 @@ func (f *Filter) Matches(event *github.Event) bool {
 type Condition struct {
 	// Type compares the Event's Type field. An empty Type will skip the check.
 	Type string
-	// PayloadAction compares the event's Action field in its payload. If set not empty
+	// PayloadAction compares the event's Action field in its payload. If not empty
 	// the event must have a non-nil payload, must have an string action field and must
 	// be a case sensitive match. An empty PayloadAction will skip the check.
 	// TODO probably shouldn't be a case sensitive match.
 	PayloadAction string
+	// PayloadIssueLabel compares the event's label issue labels array. If not empty
+	// the payload must have a non-nil payload, issue and labels field. If empty the
+	// fields are not checked. Comparison is case insensitive.
+	PayloadIssueLabel string
 	// ComparePublic enables comparing of the event's public field with the condition's
 	// Public value. Setting to false will skip checking the Public field.
 	ComparePublic bool
@@ -43,11 +48,6 @@ type Condition struct {
 	// RepositoryID compares the event's Repository's ID field. The event must have
 	// a non-nil Repository. A zero value will skip the check.
 	RepositoryID int
-	// IssueHasLabel is used in place of IssueLabeled, the GitHub event documentation
-	// says we should see an event when an issue is labeled or unlabeled, but we're not.
-	// https://developer.github.com/v3/activity/events/types/#issuesevent
-	// In the mean time, allow people to just follow issues that have a label
-	// IssueHasLabel string // TODO
 }
 
 // Matches returns false if any test fails. In other words, it returns true if all
@@ -69,6 +69,29 @@ func (c *Condition) Matches(event *github.Event) bool {
 			return false
 		}
 		if payload.Action != c.PayloadAction {
+			return false
+		}
+	}
+	if c.PayloadIssueLabel != "" {
+		if event.RawPayload == nil {
+			return false
+		}
+		var payload struct {
+			Issue struct {
+				Labels []string `json:"labels"`
+			} `json:"issue"`
+		}
+		if err := json.Unmarshal(*event.RawPayload, &payload); err != nil {
+			// May not have issue.labels
+			return false
+		}
+		found := false
+		for _, label := range payload.Issue.Labels {
+			if strings.ToLower(label) == strings.ToLower(c.PayloadIssueLabel) {
+				found = true
+			}
+		}
+		if !found {
 			return false
 		}
 	}
