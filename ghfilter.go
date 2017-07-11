@@ -28,9 +28,8 @@ type Condition struct {
 	// Type compares the Event's Type field. An empty Type will skip the check.
 	Type string
 	// PayloadAction compares the event's Action field in its payload. If not empty
-	// the event must have a non-nil payload, must have an string action field and must
-	// be a case sensitive match. An empty PayloadAction will skip the check.
-	// TODO probably shouldn't be a case sensitive match.
+	// the event must have a non-nil payload, must have an string action field. An
+	// empty PayloadAction will skip the check. Comparison is case insensitive.
 	PayloadAction string
 	// PayloadIssueLabel compares the event's label issue labels array. If not empty
 	// the payload must have a non-nil payload, issue and labels field. If empty the
@@ -68,7 +67,7 @@ func (c *Condition) Matches(event *github.Event) bool {
 			// TODO return, log, ignore? could just be the payload doesn't have an action?
 			return false
 		}
-		if payload.Action != c.PayloadAction {
+		if strings.ToLower(payload.Action) != strings.ToLower(c.PayloadAction) {
 			return false
 		}
 	}

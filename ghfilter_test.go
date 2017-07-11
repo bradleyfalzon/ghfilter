@@ -114,7 +114,7 @@ func TestCondition_payloadAction(t *testing.T) {
 			Want:      events[0],
 		},
 		{
-			Condition: Condition{PayloadAction: "created"},
+			Condition: Condition{PayloadAction: "CREATED"},
 			Want:      events[1],
 		},
 	}
