@@ -44,6 +44,10 @@ type Condition struct {
 	// empty the payload must have a non-nil payload, issue and title field. If
 	// empty the fields are not checked. See https://golang.org/pkg/regexp for syntax.
 	PayloadIssueTitleRegexp string
+	// PayloadIssueBodyRegexp compares the event's issue body against regexp. If not
+	// empty the payload must have a non-nil payload, issue and body field. If
+	// empty the fields are not checked. See https://golang.org/pkg/regexp for syntax.
+	PayloadIssueBodyRegexp string
 	// ComparePublic enables comparing of the event's public field with the condition's
 	// Public value. Setting to false will skip checking the Public field.
 	ComparePublic bool
@@ -140,6 +144,27 @@ func (c *Condition) Matches(event *github.Event) bool {
 			return false
 		}
 		if !re.MatchString(payload.Issue.Title) {
+			return false
+		}
+	}
+	if c.PayloadIssueBodyRegexp != "" {
+		if event.RawPayload == nil {
+			return false
+		}
+		var payload struct {
+			Issue struct {
+				Body string `json:"body"`
+			} `json:"issue"`
+		}
+		if err := json.Unmarshal(*event.RawPayload, &payload); err != nil {
+			// May not have issue.title
+			return false
+		}
+		re, err := regexp.Compile(c.PayloadIssueBodyRegexp)
+		if err != nil {
+			return false
+		}
+		if !re.MatchString(payload.Issue.Body) {
 			return false
 		}
 	}

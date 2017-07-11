@@ -254,6 +254,46 @@ func TestCondition_payloadIssueTitleRegexp(t *testing.T) {
 	}
 }
 
+func TestCondition_payloadIssueBodyRegexp(t *testing.T) {
+	var (
+		match   = json.RawMessage(`{"issue":{"body":"This will Match"}}`)
+		nomatch = json.RawMessage(`{"issue":{"body":"This will Not Match"}}`)
+	)
+
+	events := []*github.Event{
+		{RawPayload: &match},
+		{RawPayload: &nomatch},
+	}
+
+	tests := []struct {
+		Condition Condition
+		Want      *github.Event
+	}{
+		{
+			Condition: Condition{PayloadIssueBodyRegexp: "not a match"},
+			Want:      nil,
+		},
+		{
+			Condition: Condition{PayloadIssueBodyRegexp: `(?i)will\s+match`},
+			Want:      events[0],
+		},
+	}
+
+	for _, test := range tests {
+		for _, event := range events {
+			if test.Condition.Matches(event) {
+				if !reflect.DeepEqual(event, test.Want) {
+					// Incorrectly matched
+					t.Errorf("condition incorrectly matched\nevent: %+v\ncondition: %+v", event, test.Condition)
+				}
+			} else if reflect.DeepEqual(event, test.Want) {
+				// Incorrectly missed
+				t.Errorf("condition incorrectly missed\nevent: %+v\ncondition: %+v", event, test.Condition)
+			}
+		}
+	}
+}
+
 func TestCondition_public(t *testing.T) {
 	events := []*github.Event{
 		{Public: github.Bool(true)},
