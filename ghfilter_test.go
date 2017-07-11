@@ -173,6 +173,47 @@ func TestCondition_payloadIssueLabel(t *testing.T) {
 		}
 	}
 }
+
+func TestCondition_payloadIssueMilestoneTitle(t *testing.T) {
+	var (
+		empty    = json.RawMessage(`{"issue":{"milestone":null}}`)
+		contains = json.RawMessage(`{"issue":{"milestone":{"Title":"title"}}}`)
+	)
+
+	events := []*github.Event{
+		{RawPayload: &empty},
+		{RawPayload: &contains},
+	}
+
+	tests := []struct {
+		Condition Condition
+		Want      *github.Event
+	}{
+		{
+			Condition: Condition{PayloadIssueMilestoneTitle: "nomatch"},
+			Want:      nil,
+		},
+		{
+			Condition: Condition{PayloadIssueMilestoneTitle: "title"},
+			Want:      events[1],
+		},
+	}
+
+	for _, test := range tests {
+		for _, event := range events {
+			if test.Condition.Matches(event) {
+				if !reflect.DeepEqual(event, test.Want) {
+					// Incorrectly matched
+					t.Errorf("condition incorrectly matched\nevent: %+v\ncondition: %+v", event, test.Condition)
+				}
+			} else if reflect.DeepEqual(event, test.Want) {
+				// Incorrectly missed
+				t.Errorf("condition incorrectly missed\nevent: %+v\ncondition: %+v", event, test.Condition)
+			}
+		}
+	}
+}
+
 func TestCondition_public(t *testing.T) {
 	events := []*github.Event{
 		{Public: github.Bool(true)},

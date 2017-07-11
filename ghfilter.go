@@ -31,10 +31,14 @@ type Condition struct {
 	// the event must have a non-nil payload, must have an string action field. An
 	// empty PayloadAction will skip the check. Comparison is case insensitive.
 	PayloadAction string
-	// PayloadIssueLabel compares the event's label issue labels array. If not empty
+	// PayloadIssueLabel compares the event's issue labels array. If not empty
 	// the payload must have a non-nil payload, issue and labels field. If empty the
 	// fields are not checked. Comparison is case insensitive.
 	PayloadIssueLabel string
+	// PayloadIssueMilestoneTitle compares the event's issue milestone's title. If not
+	// empty the payload must have a non-nik payload, issue and milestone field. If
+	// empty the fields are not checked. Comparison is case insensitive.
+	PayloadIssueMilestoneTitle string
 	// ComparePublic enables comparing of the event's public field with the condition's
 	// Public value. Setting to false will skip checking the Public field.
 	ComparePublic bool
@@ -91,6 +95,25 @@ func (c *Condition) Matches(event *github.Event) bool {
 			}
 		}
 		if !found {
+			return false
+		}
+	}
+	if c.PayloadIssueMilestoneTitle != "" {
+		if event.RawPayload == nil {
+			return false
+		}
+		var payload struct {
+			Issue struct {
+				Milestone struct {
+					Title string `json:"title"`
+				} `json:"milestone"`
+			} `json:"issue"`
+		}
+		if err := json.Unmarshal(*event.RawPayload, &payload); err != nil {
+			// May not have issue.milestone.title
+			return false
+		}
+		if strings.ToLower(payload.Issue.Milestone.Title) != strings.ToLower(c.PayloadIssueMilestoneTitle) {
 			return false
 		}
 	}
