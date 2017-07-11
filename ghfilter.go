@@ -24,8 +24,14 @@ func (f *Filter) Matches(event *github.Event) bool {
 }
 
 // A Condition is a test which compares multiple fields with a GitHub event's.
-// TODO rename to EventCondition?
 type Condition struct {
+	// Negate causes a positive match to return false, instead of true.
+	//
+	// If a condition requires fields to be set, they will continue to return false.
+	// For example, if Nagate is true and PayloadAction a non zero value, if the
+	// event does not have a payload with an action key, the match will continue
+	// to be false.
+	Negate bool
 	// Type compares the Event's Type field. An empty Type will skip the check.
 	Type string
 	// PayloadAction compares the event's Action field in its payload. If not empty
@@ -67,7 +73,7 @@ type Condition struct {
 // TODO rename to Test?
 func (c *Condition) Matches(event *github.Event) bool {
 	if c.Type != "" && event.GetType() != c.Type {
-		return false
+		return c.Negate
 	}
 	if c.PayloadAction != "" {
 		if event.RawPayload == nil {
@@ -81,7 +87,7 @@ func (c *Condition) Matches(event *github.Event) bool {
 			return false
 		}
 		if strings.ToLower(payload.Action) != strings.ToLower(c.PayloadAction) {
-			return false
+			return c.Negate
 		}
 	}
 	if c.PayloadIssueLabel != "" {
@@ -104,7 +110,7 @@ func (c *Condition) Matches(event *github.Event) bool {
 			}
 		}
 		if !found {
-			return false
+			return c.Negate
 		}
 	}
 	if c.PayloadIssueMilestoneTitle != "" {
@@ -123,7 +129,7 @@ func (c *Condition) Matches(event *github.Event) bool {
 			return false
 		}
 		if strings.ToLower(payload.Issue.Milestone.Title) != strings.ToLower(c.PayloadIssueMilestoneTitle) {
-			return false
+			return c.Negate
 		}
 	}
 	if c.PayloadIssueTitleRegexp != "" {
@@ -144,7 +150,7 @@ func (c *Condition) Matches(event *github.Event) bool {
 			return false
 		}
 		if !re.MatchString(payload.Issue.Title) {
-			return false
+			return c.Negate
 		}
 	}
 	if c.PayloadIssueBodyRegexp != "" {
@@ -165,17 +171,17 @@ func (c *Condition) Matches(event *github.Event) bool {
 			return false
 		}
 		if !re.MatchString(payload.Issue.Body) {
-			return false
+			return c.Negate
 		}
 	}
 	if c.ComparePublic && event.GetPublic() != c.Public {
-		return false
+		return c.Negate
 	}
 	if c.OrganizationID != 0 && (event.Org == nil || event.Org.GetID() != c.OrganizationID) {
-		return false
+		return c.Negate
 	}
 	if c.RepositoryID != 0 && (event.Repo == nil || event.Repo.GetID() != c.RepositoryID) {
-		return false
+		return c.Negate
 	}
-	return true
+	return !c.Negate
 }

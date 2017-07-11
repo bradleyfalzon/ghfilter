@@ -56,9 +56,6 @@ func TestCondition_type(t *testing.T) {
 		{
 			Type: github.String("IssuesEvent"),
 		},
-		{
-			Type: github.String("IssuesCommentEvent"),
-		},
 	}
 
 	tests := []struct {
@@ -74,8 +71,8 @@ func TestCondition_type(t *testing.T) {
 			Want:      events[0],
 		},
 		{
-			Condition: Condition{Type: "IssuesCommentEvent"},
-			Want:      events[1],
+			Condition: Condition{Type: "NonExistentEvent", Negate: true},
+			Want:      events[0],
 		},
 	}
 
