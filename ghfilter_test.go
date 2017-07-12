@@ -51,6 +51,109 @@ func TestFilter_matches(t *testing.T) {
 	}
 }
 
+func TestFilter_string(t *testing.T) {
+	tests := []struct {
+		Condition Condition
+		Want      string
+	}{
+		{
+			Condition: Condition{Type: "foo"},
+			Want:      `If type is "foo"`,
+		},
+		{
+			Condition: Condition{Type: "foo", Negate: true},
+			Want:      `If type is not "foo"`,
+		},
+		{
+			Condition: Condition{PayloadAction: "foo"},
+			Want:      `If payload action is "foo"`,
+		},
+		{
+			Condition: Condition{PayloadAction: "foo", Negate: true},
+			Want:      `If payload action is not "foo"`,
+		},
+		{
+			Condition: Condition{Type: "foo", PayloadAction: "bar"},
+			Want:      `If type is "foo" AND payload action is "bar"`,
+		},
+		{
+			Condition: Condition{Type: "foo", PayloadAction: "bar", Negate: true},
+			Want:      `If type is not "foo" AND payload action is not "bar"`,
+		},
+		{
+			Condition: Condition{PayloadIssueLabel: "foo"},
+			Want:      `If payload issue label contains "foo"`,
+		},
+		{
+			Condition: Condition{PayloadIssueLabel: "foo", Negate: true},
+			Want:      `If payload issue label does not contain "foo"`,
+		},
+		{
+			Condition: Condition{PayloadIssueMilestoneTitle: "foo"},
+			Want:      `If payload issue milestone title is "foo"`,
+		},
+		{
+			Condition: Condition{PayloadIssueMilestoneTitle: "foo", Negate: true},
+			Want:      `If payload issue milestone title is not "foo"`,
+		},
+		{
+			Condition: Condition{PayloadIssueTitleRegexp: `foo['"]`},
+			Want:      `If payload issue title matches regexp "foo['\"]"`,
+		},
+		{
+			Condition: Condition{PayloadIssueTitleRegexp: `foo['"]`, Negate: true},
+			Want:      `If payload issue title does not match regexp "foo['\"]"`,
+		},
+		{
+			Condition: Condition{PayloadIssueBodyRegexp: `foo['"]`},
+			Want:      `If payload issue body matches regexp "foo['\"]"`,
+		},
+		{
+			Condition: Condition{PayloadIssueBodyRegexp: `foo['"]`, Negate: true},
+			Want:      `If payload issue body does not match regexp "foo['\"]"`,
+		},
+		{
+			Condition: Condition{ComparePublic: true, Public: true},
+			Want:      `If event is public`,
+		},
+		{
+			Condition: Condition{ComparePublic: true, Public: false},
+			Want:      `If event is not public`,
+		},
+		{
+			Condition: Condition{ComparePublic: true, Public: true, Negate: true},
+			Want:      `If event is not public`,
+		},
+		{
+			Condition: Condition{ComparePublic: true, Public: false, Negate: true},
+			Want:      `If event is not not public`, // :/
+		},
+		{
+			Condition: Condition{OrganizationID: 1},
+			Want:      `If organization ID is 1`,
+		},
+		{
+			Condition: Condition{OrganizationID: 1, Negate: true},
+			Want:      `If organization ID is not 1`,
+		},
+		{
+			Condition: Condition{RepositoryID: 1},
+			Want:      `If repository ID is 1`,
+		},
+		{
+			Condition: Condition{RepositoryID: 1, Negate: true},
+			Want:      `If repository ID is not 1`,
+		},
+	}
+
+	for _, test := range tests {
+		if have := test.Condition.String(); have != test.Want {
+			t.Errorf("String does not match\nhave: %v\nwant: %v", have, test.Want)
+		}
+	}
+
+}
+
 func TestCondition_type(t *testing.T) {
 	events := []*github.Event{
 		{

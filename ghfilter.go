@@ -2,6 +2,7 @@ package ghfilter
 
 import (
 	"encoding/json"
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -66,6 +67,64 @@ type Condition struct {
 	// RepositoryID compares the event's Repository's ID field. The event must have
 	// a non-nil Repository. A zero value will skip the check.
 	RepositoryID int
+}
+
+func (c Condition) String() string {
+	var (
+		conditions []string
+		is         = "is"
+		matches    = "matches"
+		contains   = "contains"
+	)
+
+	if c.Negate {
+		is = "is not"
+		matches = "does not match"
+		contains = "does not contain"
+	}
+
+	if c.Type != "" {
+		conditions = append(conditions, fmt.Sprintf("type %s %q", is, c.Type))
+	}
+
+	if c.PayloadAction != "" {
+		conditions = append(conditions, fmt.Sprintf("payload action %s %q", is, c.PayloadAction))
+	}
+
+	if c.PayloadIssueLabel != "" {
+		conditions = append(conditions, fmt.Sprintf("payload issue label %s %q", contains, c.PayloadIssueLabel))
+	}
+
+	if c.PayloadIssueMilestoneTitle != "" {
+		conditions = append(conditions, fmt.Sprintf("payload issue milestone title %s %q", is, c.PayloadIssueMilestoneTitle))
+	}
+
+	if c.PayloadIssueTitleRegexp != "" {
+		conditions = append(conditions, fmt.Sprintf("payload issue title %s regexp %q", matches, c.PayloadIssueTitleRegexp))
+	}
+
+	if c.PayloadIssueBodyRegexp != "" {
+		conditions = append(conditions, fmt.Sprintf("payload issue body %s regexp %q", matches, c.PayloadIssueBodyRegexp))
+	}
+
+	if c.ComparePublic {
+		switch c.Public {
+		case true:
+			conditions = append(conditions, fmt.Sprintf("event %s public", is))
+		case false:
+			conditions = append(conditions, fmt.Sprintf("event %s not public", is))
+		}
+	}
+
+	if c.OrganizationID != 0 {
+		conditions = append(conditions, fmt.Sprintf("organization ID %s %d", is, c.OrganizationID))
+	}
+
+	if c.RepositoryID != 0 {
+		conditions = append(conditions, fmt.Sprintf("repository ID %s %d", is, c.RepositoryID))
+	}
+
+	return fmt.Sprintf("If %v", strings.Join(conditions, " AND "))
 }
 
 // Matches returns false if any test fails. In other words, it returns true if all
